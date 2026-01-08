@@ -1,35 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>期末戰情室 V1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期末戰情室 // Final Quest V2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-top: 50px; }
+        .main-card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .completed-text { text-decoration: line-through; color: #adb5bd; }
+    </style>
 </head>
-<body class="bg-light">
-    <div id="app" class="container py-5">
-        <h1 class="text-center mb-4">🏁 期末全攻略戰情室</h1>
-        <div class="input-group mb-3">
-            <input v-model="newTask" @keyup.enter="addTask" class="form-control" placeholder="新增任務...">
-            <button @click="addTask" class="btn btn-primary">新增</button>
+<body>
+
+    <div id="app" class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h1 class="text-center mb-4 fw-bold">🏁 期末全攻略戰情室</h1>
+                
+                <div class="card main-card p-4 mb-4">
+                    <h5 class="mb-3">當前總進度：{{ progress }}%</h5>
+                    <div class="progress mb-4" style="height: 20px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                             :style="{ width: progress + '%' }"></div>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <input type="text" v-model="newTask" @keyup.enter="addTask" class="form-control" placeholder="新增期末任務...">
+                        <button class="btn btn-primary" @click="addTask">新增</button>
+                    </div>
+
+                    <ul class="list-group">
+                        <li v-for="(task, index) in tasks" :key="index" class="list-group-item d-flex justify-content-between align-items-center">
+                            <div @click="toggleTask(index)" style="cursor: pointer; flex-grow: 1;">
+                                <input type="checkbox" v-model="task.done" class="me-2">
+                                <span :class="{ 'completed-text': task.done }">{{ task.content }}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" @click="removeTask(index)">🗑️</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <ul class="list-group">
-            <li v-for="(task, index) in tasks" :key="index" class="list-group-item">
-                <input type="checkbox" v-model="task.done" class="me-2">
-                {{ task.content }}
-            </li>
-        </ul>
     </div>
+
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
     <script>
-        const { createApp, ref } = Vue;
+        const { createApp, ref, computed, watch } = Vue;
         createApp({
             setup() {
                 const newTask = ref('');
-                const tasks = ref([]);
+                // 從 LocalStorage 載入資料 (課綱: JSON 與 API 應用概念)
+                const tasks = ref(JSON.parse(localStorage.getItem('final-tasks-v2') || '[]'));
+
                 const addTask = () => {
-                    if (newTask.value) { tasks.value.push({ content: newTask.value, done: false }); newTask.value = ''; }
+                    if (newTask.value.trim()) {
+                        tasks.value.push({ content: newTask.value, done: false });
+                        newTask.value = '';
+                    }
                 };
-                return { newTask, tasks, addTask };
+
+                const toggleTask = (index) => {
+                    tasks.value[index].done = !tasks.value[index].done;
+                };
+
+                const removeTask = (index) => {
+                    tasks.value.splice(index, 1);
+                };
+
+                // 計算百分比 (課綱 10)
+                const progress = computed(() => {
+                    if (tasks.value.length === 0) return 0;
+                    const doneCount = tasks.value.filter(t => t.done).length;
+                    return Math.round((doneCount / tasks.value.length) * 100);
+                });
+
+                // 監聽 tasks 變化並存檔
+                watch(tasks, (newVal) => {
+                    localStorage.setItem('final-tasks-v2', JSON.stringify(newVal));
+                }, { deep: true });
+
+                return { newTask, tasks, addTask, removeTask, toggleTask, progress };
             }
         }).mount('#app');
     </script>
