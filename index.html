@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>期末戰情室 // Final Quest V2</title>
+    <title>期末戰情室 // Final Quest V3</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; padding-top: 50px; }
-        .main-card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; padding-top: 50px; }
+        .main-card { border-radius: 20px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: all 0.5s; }
+        .emoji-box { font-size: 5rem; cursor: pointer; transition: transform 0.3s; }
+        .emoji-box:hover { transform: scale(1.2); }
         .completed-text { text-decoration: line-through; color: #adb5bd; }
+        /* 達成 100% 的特別樣式 */
+        .all-pass-glow { box-shadow: 0 0 25px rgba(40, 167, 69, 0.4); border: 2px solid #28a745; }
     </style>
 </head>
 <body>
@@ -16,30 +22,38 @@
     <div id="app" class="container">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <h1 class="text-center mb-4 fw-bold">🏁 期末全攻略戰情室</h1>
                 
-                <div class="card main-card p-4 mb-4">
-                    <h5 class="mb-3">當前總進度：{{ progress }}%</h5>
-                    <div class="progress mb-4" style="height: 20px;">
-                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                             :style="{ width: progress + '%' }"></div>
-                    </div>
-
-                    <div class="input-group mb-3">
-                        <input type="text" v-model="newTask" @keyup.enter="addTask" class="form-control" placeholder="新增期末任務...">
-                        <button class="btn btn-primary" @click="addTask">新增</button>
-                    </div>
-
-                    <ul class="list-group">
-                        <li v-for="(task, index) in tasks" :key="index" class="list-group-item d-flex justify-content-between align-items-center">
-                            <div @click="toggleTask(index)" style="cursor: pointer; flex-grow: 1;">
-                                <input type="checkbox" v-model="task.done" class="me-2">
-                                <span :class="{ 'completed-text': task.done }">{{ task.content }}</span>
-                            </div>
-                            <button class="btn btn-sm btn-outline-danger" @click="removeTask(index)">🗑️</button>
-                        </li>
-                    </ul>
+                <div class="text-center mb-5 animate__animated animate__backInDown">
+                    <h1 class="fw-bold text-dark">🏁 期末全攻略戰情室</h1>
+                    <p class="text-muted">距離全科及格還差最後一哩路！</p>
                 </div>
+
+                <div :class="['card', 'main-card', 'p-4', 'mb-4', 'text-center', 'animate__animated', 'animate__fadeIn', { 'all-pass-glow': progress === 100 }]">
+                    <div class="emoji-box animate__animated animate__heartBeat animate__infinite">{{ statusEmoji }}</div>
+                    <h3 class="mt-3 fw-bold text-secondary">{{ statusText }}</h3>
+                    
+                    <div class="progress mt-4" style="height: 25px; border-radius: 50px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                             :style="{ width: progress + '%' }">{{ progress }}%</div>
+                    </div>
+                </div>
+
+                <div class="input-group mb-4 shadow-sm animate__animated animate__fadeInUp">
+                    <input type="text" v-model="newTask" @keyup.enter="addTask" class="form-control form-control-lg border-0" placeholder="輸入新的挑戰任務...">
+                    <button class="btn btn-primary px-4 fw-bold" @click="addTask">新增任務</button>
+                </div>
+
+                <div class="list-group shadow-sm animate__animated animate__fadeInUp">
+                    <div v-for="(task, index) in tasks" :key="index" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                        <div @click="toggleTask(index)" style="cursor: pointer; flex-grow: 1;">
+                            <span :class="{ 'completed-text': task.done }" class="fs-5">
+                                {{ task.done ? '✅' : '⚔️' }} {{ task.content }}
+                            </span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger border-0" @click="removeTask(index)">🗑️</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -51,8 +65,7 @@
         createApp({
             setup() {
                 const newTask = ref('');
-                // 從 LocalStorage 載入資料 (課綱: JSON 與 API 應用概念)
-                const tasks = ref(JSON.parse(localStorage.getItem('final-tasks-v2') || '[]'));
+                const tasks = ref(JSON.parse(localStorage.getItem('final-tasks-v3') || '[]'));
 
                 const addTask = () => {
                     if (newTask.value.trim()) {
@@ -61,27 +74,35 @@
                     }
                 };
 
-                const toggleTask = (index) => {
-                    tasks.value[index].done = !tasks.value[index].done;
-                };
+                const toggleTask = (index) => { tasks.value[index].done = !tasks.value[index].done; };
+                const removeTask = (index) => { tasks.value.splice(index, 1); };
 
-                const removeTask = (index) => {
-                    tasks.value.splice(index, 1);
-                };
-
-                // 計算百分比 (課綱 10)
                 const progress = computed(() => {
                     if (tasks.value.length === 0) return 0;
                     const doneCount = tasks.value.filter(t => t.done).length;
                     return Math.round((doneCount / tasks.value.length) * 100);
                 });
 
-                // 監聽 tasks 變化並存檔
+                // 根據進度顯示不同的小表情 (這就是互動的核心！)
+                const statusEmoji = computed(() => {
+                    if (tasks.value.length === 0) return '😴';
+                    if (progress.value === 100) return '🥳';
+                    if (progress.value >= 50) return '😎';
+                    return '😰';
+                });
+
+                const statusText = computed(() => {
+                    if (tasks.value.length === 0) return '還沒開始挑戰呢！';
+                    if (progress.value === 100) return '全數通過！你是傳奇！';
+                    if (progress.value >= 50) return '穩了！繼續保持！';
+                    return '趕工中... 加油！';
+                });
+
                 watch(tasks, (newVal) => {
-                    localStorage.setItem('final-tasks-v2', JSON.stringify(newVal));
+                    localStorage.setItem('final-tasks-v3', JSON.stringify(newVal));
                 }, { deep: true });
 
-                return { newTask, tasks, addTask, removeTask, toggleTask, progress };
+                return { newTask, tasks, addTask, removeTask, toggleTask, progress, statusEmoji, statusText };
             }
         }).mount('#app');
     </script>
